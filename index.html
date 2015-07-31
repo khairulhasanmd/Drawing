@@ -1,0 +1,560 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="style.css">
+<!--  <script type="text/javascript" src="jquery.min.js" type="text/javascript"></script>-->
+ <script type="text/javascript" src="./js/jquery-1.9.1.js"></script>
+    <script type="text/javascript" src="./js/jquery.mobile-1.3.2.js"></script>
+ <script type="text/javascript" src="colorpicker/js/colorpicker.js"></script>
+<script type="text/javascript" src="colorpicker/js/eye.js"></script>
+<script type="text/javascript" src="colorpicker/js/utils.js"></script>
+<script type="text/javascript" src="colorpicker/js/layout.js?ver=1.0.2"></script>
+<script type='text/javascript'>
+$(document).ready(function () {
+//http://perfectionkills.com/exploring-canvas-drawing-techniques/
+	var c=document.getElementById("ArtCanvas");
+	var Art=c.getContext("2d");
+	var CANVAS_WIDTH = c.width;
+	var CANVAS_HEIGHT = c.height;
+	var drawType=0;
+					//10=spray
+					//9=multiline
+					//8=sliced stroke with opacity
+					//7=charcoal lines/chalk lines
+					//6=jiggy line/broken pencil
+					//5=random circle
+					//4=gradientline
+					//3=*buggy bezier line
+					//2=antialiased lines
+					//1=normal line
+	var drawSize=20;
+	var clientX, clientY, timeout;//for spray
+	var density = 40;//for spray
+	
+	var CoorD = [ ];
+	timeout=setTimeout(saveClrRamRedraw, 100);
+	timeoutSettings = setTimeout(showSettingsPanel, 500);
+	clearTimeout(timeoutSettings);
+	var isDrawing, lastPoint, currentPoint, r, g, b;
+	document.onmousedown = mDown;
+	document.onmousemove = mMove;
+	document.onmouseup = mUp;
+	//image data variable that will hold our full image into the ram for lenghty operations and not to slow down after long drawings.
+    var imageData = Art.getImageData(0,0,Art.canvas.width,Art.canvas.height);
+	var timeoutId = 0;
+	//var tmTimeout;
+	
+	
+	window.addEventListener("touchstart", mDown, false);
+    window.addEventListener("touchend", mUp, false);
+    window.addEventListener("touchmove", mMove, false);
+	
+	
+	function showSettingsPanel()
+	{
+		//alert ("shown");
+		document.getElementById('ToolbarPanel').style.visibility='visible'; // hide
+		isDrawing=false;
+	}
+	
+	function mDown(e)
+	{
+	var MousePointer = e.touches.item(0);
+	//e.preventDefault();
+	//---------push and hold to show menu
+		Art.strokeStyle = $('#colorSelector div').css('backgroundColor');
+		r=hexToRgb(Art.strokeStyle).r;
+		g=hexToRgb(Art.strokeStyle).g;
+		b=hexToRgb(Art.strokeStyle).b;
+		timeoutSettings = setTimeout(showSettingsPanel, 500);//the settings panel
+		clearTimeout(timeout);//saveClrRamRedraw
+		isDrawing = true;
+		CoorD.push({ x: MousePointer.pageX, 
+					 y: MousePointer.pageY,
+					 radius: getRandomInt(10, 30),
+					 opacity: Math.random(),
+					 Dragged: false });
+		lastPoint={ x: MousePointer.pageX, 
+					y: MousePointer.pageY,
+					Dragged: false };
+		currentPoint={ x: MousePointer.pageX, 
+		     y: MousePointer.pageY,
+			 Dragged: true };
+		if (drawType==1)
+		{
+			Art.moveTo(MousePointer.pageX, MousePointer.pageY);
+			Art.globalAlpha = 1;
+			Art.shadowBlur = 0;
+		}
+		else if (drawType==2)
+		{
+			Art.shadowBlur = drawSize;
+			Art.shadowColor = 'rgb('+r+','+g+','+b+')';
+			Art.moveTo(MousePointer.pageX, MousePointer.pageY);
+		}
+		else if (drawType==3)
+		{
+			Art.lineWidth = 1;
+			Art.lineJoin = Art.lineCap = 'round';
+			Art.moveTo(MousePointer.pageX, MousePointer.pageY);
+			Art.beginPath();
+		}
+		else if (drawType==6)
+		{
+			Art.lineWidth = 1;
+			Art.lineJoin = Art.lineCap = 'round';
+		}
+		else if (drawType==7)
+		{
+			Art.lineWidth = drawSize;
+			Art.lineJoin = Art.lineCap = 'butt';
+		}
+		else if (drawType==8)
+		{
+			Art.lineWidth = drawSize;
+			Art.lineJoin = Art.lineCap = 'butt';
+		}
+		else if (drawType==9)
+		{
+			Art.lineWidth = drawSize;
+			Art.lineJoin = Art.lineCap = 'butt';
+		}
+		else if (drawType==10)
+		{
+			Art.lineWidth = drawSize;
+			Art.lineJoin = Art.lineCap = 'round';
+			clientX = MousePointer.clientX;
+			clientY = MousePointer.clientY;
+			
+			tMtimeout = setTimeout(function dRdraw() {
+			for (var i = density; i--; ) {
+			  var angle = getRandomFloat(0, Math.PI * 2);
+			  var radius = getRandomFloat(0, drawSize);
+			  Art.globalAlpha = Math.random();
+			  Art.fillStyle=$('#colorSelector div').css('backgroundColor');
+			  Art.fillRect(
+				clientX + radius * Math.cos(angle),
+				clientY + radius * Math.sin(angle), 
+				getRandomFloat(1, 2), getRandomFloat(1, 2));
+			}
+			if (!tMtimeout) return;
+			tMtimeout = setTimeout(dRdraw, 50);
+			//clientX = MousePointer.clientX;
+			//clientY = MousePointer.clientY;
+		  }, 50);
+			
+			
+		}
+		//reDraw();
+		//e.preventDefault();
+	}//----------------
+	function mMove(e)
+	{
+	var MousePointer = e.touches.item(0);
+	//e.preventDefault();
+	//console.log(lastPoint);
+		if ((isDrawing==true) && (MousePointer.pageX !== lastPoint.x) && (MousePointer.pageY !== lastPoint.y))
+		{
+		//console.log(lastPoint);
+		//---------push and hold to show menu
+		clearTimeout(timeout);
+		clearTimeout(timeoutSettings);
+		//document.getElementById('ToolbarPanel').style.visibility='hidden';
+			CoorD.push({ x: MousePointer.pageX, 
+					     y: MousePointer.pageY,
+						 radius: getRandomInt(10, 30),
+						 opacity: Math.random(),
+						 Dragged: true });
+			currentPoint={ x: MousePointer.pageX, 
+					     y: MousePointer.pageY,
+						 Dragged: true };
+			//reDraw();
+			
+			if (drawType==1)
+			{//normal jiggy lines
+				Art.beginPath();
+				Art.moveTo(lastPoint.x, lastPoint.y);
+				Art.fillStyle=Art.strokeStyle;
+				Art.lineTo(MousePointer.pageX, MousePointer.pageY);
+				Art.lineWidth = drawSize;
+				Art.lineJoin = Art.lineCap = 'round';
+				Art.closePath();
+				Art.stroke();
+			}
+			else if (drawType==2)
+			{//anti aliased smooth lines
+				Art.beginPath();
+				Art.moveTo(lastPoint.x, lastPoint.y);
+				Art.fillStyle=Art.strokeStyle;
+				Art.lineTo(MousePointer.pageX, MousePointer.pageY);
+				Art.lineWidth = drawSize;
+				Art.lineJoin = Art.lineCap = 'round';
+				Art.closePath();
+				Art.stroke();
+			}
+			else if (drawType==3)
+			{//bezier lines
+			var p1 = CoorD[0];
+			var p2 = CoorD[1];
+				for (var i = 1, len = CoorD.length; i < len; i++) {
+					// we pick the point between pi+1 & pi+2 as the
+					// end point and p1 as our control point
+					var midPoint = midPointBtw(p1, p2);
+					Art.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
+					p1 = CoorD[i];
+					p2 = CoorD[i+1];
+				  }
+				  // Draw last line as a straight line while
+				  // we wait for the next point to be able to calculate
+				  // the bezier control point
+				  Art.lineTo(p1.x, p1.y);
+				  Art.stroke();
+			}
+			else if (drawType==6)
+			{//bezier lines
+				Art.beginPath();
+				Art.moveTo(lastPoint.x - getRandomInt(0, 2), lastPoint.y - getRandomInt(0, 2));
+				Art.lineTo(MousePointer.clientX - getRandomInt(0, 2), MousePointer.clientY - getRandomInt(0, 2));
+				Art.stroke();
+				Art.moveTo(lastPoint.x, lastPoint.y);
+				Art.lineTo(MousePointer.clientX, MousePointer.clientY);
+				Art.stroke();
+				Art.moveTo(lastPoint.x + getRandomInt(0, 2), lastPoint.y + getRandomInt(0, 2));
+				Art.lineTo(MousePointer.clientX + getRandomInt(0, 2), MousePointer.clientY + getRandomInt(0, 2));
+				Art.stroke();
+			}
+			else if (drawType==7)
+			{//bezier lines
+				Art.beginPath();
+				Art.moveTo(lastPoint.x, lastPoint.y);
+				Art.lineTo(MousePointer.clientX, MousePointer.clientY);
+				Art.stroke();
+				
+				Art.moveTo(lastPoint.x-Math.floor(drawSize/2), lastPoint.y-Math.floor(drawSize/2));
+				Art.lineTo(MousePointer.clientX-Math.floor(drawSize/2), MousePointer.clientY-Math.floor(drawSize/2));
+				Art.stroke();
+			}
+			else if (drawType==8)
+			{//bezier lines
+				Art.beginPath();
+				Art.globalAlpha = 1;
+				Art.moveTo(lastPoint.x - 4, lastPoint.y - 4);
+				Art.lineTo(MousePointer.clientX - 4, MousePointer.clientY - 4);
+				Art.stroke();
+				
+				Art.globalAlpha = 0.6;
+				Art.moveTo(lastPoint.x - 2, lastPoint.y - 2);
+				Art.lineTo(MousePointer.clientX - 2, MousePointer.clientY - 2);
+				Art.stroke();
+
+				Art.globalAlpha = 0.4;
+				Art.moveTo(lastPoint.x, lastPoint.y);
+				Art.lineTo(MousePointer.clientX, MousePointer.clientY);
+				Art.stroke();
+			  
+				Art.globalAlpha = 0.3;
+				Art.moveTo(lastPoint.x + 2, lastPoint.y + 2);
+				Art.lineTo(MousePointer.clientX + 2, MousePointer.clientY + 2);
+				Art.stroke();
+			  
+				Art.globalAlpha = 0.2;
+				Art.moveTo(lastPoint.x + 4, lastPoint.y + 4);
+				Art.lineTo(MousePointer.clientX + 4, MousePointer.clientY + 4);
+				Art.stroke();
+			}
+			else if (drawType==9)
+			{//bezier lines
+				Art.beginPath();
+				//Art.globalAlpha = 1;
+				Art.moveTo(lastPoint.x - 4, lastPoint.y - 4);
+				Art.lineTo(MousePointer.clientX - 4, MousePointer.clientY - 4);
+				Art.stroke();
+				
+				//Art.globalAlpha = 0.6;
+				Art.moveTo(lastPoint.x - 2, lastPoint.y - 2);
+				Art.lineTo(MousePointer.clientX - 2, MousePointer.clientY - 2);
+				Art.stroke();
+
+				//Art.globalAlpha = 0.4;
+				Art.moveTo(lastPoint.x, lastPoint.y);
+				Art.lineTo(MousePointer.clientX, MousePointer.clientY);
+				Art.stroke();
+			  
+				//Art.globalAlpha = 0.3;
+				Art.moveTo(lastPoint.x + 2, lastPoint.y + 2);
+				Art.lineTo(MousePointer.clientX + 2, MousePointer.clientY + 2);
+				Art.stroke();
+			  
+				//Art.globalAlpha = 0.2;
+				Art.moveTo(lastPoint.x + 4, lastPoint.y + 4);
+				Art.lineTo(MousePointer.clientX + 4, MousePointer.clientY + 4);
+				Art.stroke();
+			}
+			else if (drawType==10)
+			{//spray
+				clientX = MousePointer.clientX;
+				clientY = MousePointer.clientY;
+			}
+			else if (drawType==4){//gradientline
+			var dist = distanceBetween(lastPoint, currentPoint);
+			var angle = angleBetween(lastPoint, currentPoint);
+				for (var i = 0; i < dist; i+=5) {
+					x = lastPoint.x + (Math.sin(angle) * i);
+					y = lastPoint.y + (Math.cos(angle) * i);
+					var radgrad = Art.createRadialGradient(x,y,(drawSize/5),x,y,(drawSize/2));
+					radgrad.addColorStop(0, Art.strokeStyle);//the damn colors
+					radgrad.addColorStop(0.5, 'rgba('+r+','+g+','+b+',0.5)');//alpha channel is here
+					radgrad.addColorStop(1, 'rgba('+r+','+g+','+b+',0)');//
+					Art.fillStyle = radgrad;
+					Art.fillRect(x-(drawSize/2), y-(drawSize/2), drawSize, drawSize);//size
+				}
+			}
+			else if (drawType==5)//randomcircle
+			{
+			var i=CoorD.length-1;
+			Art.fillStyle=Art.strokeStyle;
+				//for (var i = 0; i < CoorD.length; i++) {
+					Art.beginPath();
+					Art.globalAlpha = CoorD[i].opacity;
+					Art.arc(
+					  CoorD[i].x, CoorD[i].y, CoorD[i].radius, 
+					  false, Math.PI * 2, false);
+					Art.fill();
+				//}
+			}
+		}
+		lastPoint=currentPoint
+		//e.preventDefault();
+	}//--------------------
+	function mUp(e)
+	{
+	var MousePointer = e.touches.item(0);
+	//e.preventDefault();
+		if (drawType==10){
+			clearTimeout(tMtimeout);
+		}
+		clearTimeout(timeoutSettings);
+		isDrawing=false;
+		saveClrRamRedraw();
+		timeout=setTimeout(saveClrRamRedraw, 50);
+		//e.preventDefault();
+	}//----------------------
+	
+	
+	function saveClrRamRedraw()
+	{
+		console.log(CoorD.length);
+		saveImg();
+		initVars();
+		putImg();
+	}
+	
+	function initVars()
+	{
+		CoorD.length = 0;
+	}
+	
+	function reDraw()
+	{
+	for(var i=0; i < CoorD.length; i++) 
+		{		
+			Art.beginPath();
+			if(CoorD.Dragged[i] && i){
+				Art.moveTo(ArtX[i-1], ArtY[i-1]);
+			 }else{
+				Art.moveTo(ArtX[i]-1, ArtY[i]);
+			 }
+			 Art.lineTo(ArtX[i], ArtY[i]);
+			 Art.closePath();
+			 Art.stroke();
+		}
+	}
+	
+	function saveImg()
+	{
+		imageData = Art.getImageData(0,0,Art.canvas.width,Art.canvas.height);
+	}
+	function putImg()
+	{
+		//imageData = Art.getImageData(0,0,Art.canvas.width,Art.canvas.height);
+		Art.clearRect(0, 0, Art.canvas.width, Art.canvas.height);
+		Art.putImageData(imageData,0,0);
+	}
+	
+    // resize the canvas to fill browser window dynamically
+    window.addEventListener('resize', resizeCanvas, false);
+    function resizeCanvas() {
+			saveImg();
+			initVars();
+            c.width = window.innerWidth;
+            c.height = window.innerHeight;
+			putImg();
+    }
+	
+	//alert( hexToRgb("#0033ff").g ); // "51";
+	function hexToRgb(hex) {
+		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+		return result ? {
+			r: parseInt(result[1], 16),
+			g: parseInt(result[2], 16),
+			b: parseInt(result[3], 16)
+		} : null;
+	}
+	
+	//alert( rgbToHex(0, 51, 255) ); // #0033ff
+	function componentToHex(c) {
+		var hex = c.toString(16);
+		return hex.length == 1 ? "0" + hex : hex;
+	}
+	function rgbToHex(r, g, b) {
+		return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+	}
+
+	function getRandomInt(min, max) {
+	  return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+	
+	function getRandomFloat(min, max) {
+	  return Math.random() * (max - min) + min;
+	}
+
+	function distanceBetween(point1, point2) {
+	  return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2));
+	}
+	
+	function angleBetween(point1, point2) {
+	  return Math.atan2( point2.x - point1.x, point2.y - point1.y );
+	}
+	
+	function midPointBtw(p1, p2) {
+	  return {
+		x: p1.x + (p2.x - p1.x) / 2,
+		y: p1.y + (p2.y - p1.y) / 2
+	  };
+	}
+	function init()
+	{
+		resizeCanvas();
+		Art.strokeStyle = "#00";
+		Art.lineJoin = "round";//bevel round miter
+		Art.lineWidth = 1;	
+	}
+	
+	$("img[name='pencil']").click(function() {
+		document.getElementById("myRange").min=1;
+		//document.getElementById("myRange").value=1;
+		document.getElementById("myRange").max=50;
+		drawType=1;
+		//Art.lineWidth = 2;
+		//Art.strokeStyle = "#AA0000";
+		saveClrRamRedraw();
+	});
+	$("img[name='pen']").click(function() {
+		document.getElementById("myRange").min=1;
+		//document.getElementById("myRange").value=1;
+		document.getElementById("myRange").max=50;
+		drawSize=document.getElementById("myRange").value;
+		drawType=2;
+		//Art.lineWidth = 3;
+		//Art.strokeStyle = "#00AA00";
+		saveClrRamRedraw();
+	});
+	$("img[name='crayon']").click(function() {
+		document.getElementById("myRange").min=1;
+		//document.getElementById("myRange").value=1;
+		document.getElementById("myRange").max=50;
+		drawSize=document.getElementById("myRange").value;
+		drawType=7;
+		saveClrRamRedraw();
+	});
+	$("img[name='brush']").click(function() {
+		document.getElementById("myRange").min=15;
+		//document.getElementById("myRange").value=15;
+		document.getElementById("myRange").max=50;
+		drawSize=document.getElementById("myRange").value;
+		drawType=4;
+		//Art.lineWidth = 5;
+		//Art.strokeStyle = "#bcbcbc";
+		saveClrRamRedraw();
+	});
+	$("img[name='spray']").click(function() {
+		document.getElementById("myRange").min=10;
+		//document.getElementById("myRange").value=1;
+		document.getElementById("myRange").max=50;
+		drawSize=document.getElementById("myRange").value;
+		drawType=10;
+		//Art.lineWidth = 6;
+		//Art.strokeStyle = "#abcdef";
+		saveClrRamRedraw();
+	});
+	$("input[name='myRange']").change(function() {
+		//document.getElementById('ToolbarPanel').style.visibility='hidden';
+		drawSize=document.getElementById("myRange").value;
+		//alert("sdf");
+	});
+	$("input[name='close']").click(function() {
+		document.getElementById('ToolbarPanel').style.visibility='hidden';
+		drawSize=document.getElementById("myRange").value;
+	});
+    init();
+    
+    
+    
+     var documentsDir;
+ function onsuccess(files) {
+   for(var i = 0; i < files.length; i++) {
+     console.log("File Name is " + files[i].name); // displays file name
+   }
+
+   var testFile = documentsDir.createFile("test.txt");
+
+   if (testFile != null) {
+     testFile.openStream(
+       "w",
+       function(fs){
+         fs.write("HelloWorld");
+         fs.close();
+       }, function(e){
+         console.log("Error " + e.message);
+       }, "UTF-8"
+     );
+   }
+ }
+
+ function onerror(error) {
+   console.log("The error " + error.message + " occurred when listing the files in the selected folder");
+ }
+
+ tizen.filesystem.resolve(
+   'documents', 
+   function(dir){
+     documentsDir = dir;
+     dir.listFiles(onsuccess, onerror);
+   }, function(e){
+     console.log("Error" + e.message);
+   }, "rw"
+ );
+ 
+    
+    
+    
+});
+
+</script>
+</head>
+<body>
+<canvas id="ArtCanvas" style="z-index:1;">
+</canvas>
+<div id="ToolbarPanel" style="z-index:2; position:absolute; top:0px; left:0px; visibility:hidden">
+<img src="img/pencil.bmp" name="pencil">
+<img src="img/pen.bmp" name="pen">
+<img src="img/crayon.bmp" name="crayon">
+<img src="img/brush.bmp" name="brush">
+<img src="img/spray.bmp" name="spray">
+<br>
+<input type="range" id="myRange" name="myRange" value="50" min="0" max="100">
+<br>
+
+<input type="button" name="close" id="close" value="Close"/>
+</div>
+</body>
+</html>
