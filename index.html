@@ -58,7 +58,8 @@ $(document).ready(function () {
 	
 	function mDown(e)
 	{
-	var MousePointer = e.touches.item(0);
+	var MousePointer = e;
+	// var MousePointer = e.touches.item(0);
 	//e.preventDefault();
 	//---------push and hold to show menu
 		Art.strokeStyle = $('#colorSelector div').css('backgroundColor');
@@ -149,7 +150,8 @@ $(document).ready(function () {
 	}//----------------
 	function mMove(e)
 	{
-	var MousePointer = e.touches.item(0);
+	// var MousePointer = e.touches.item(0);
+	var MousePointer = e;
 	//e.preventDefault();
 	//console.log(lastPoint);
 		if ((isDrawing==true) && (MousePointer.pageX !== lastPoint.x) && (MousePointer.pageY !== lastPoint.y))
@@ -327,7 +329,8 @@ $(document).ready(function () {
 	}//--------------------
 	function mUp(e)
 	{
-	var MousePointer = e.touches.item(0);
+	// var MousePointer = e.touches.item(0);
+	var MousePointer = e;
 	//e.preventDefault();
 		if (drawType==10){
 			clearTimeout(tMtimeout);
@@ -524,15 +527,15 @@ $(document).ready(function () {
    console.log("The error " + error.message + " occurred when listing the files in the selected folder");
  }
 
- tizen.filesystem.resolve(
-   'documents', 
-   function(dir){
-     documentsDir = dir;
-     dir.listFiles(onsuccess, onerror);
-   }, function(e){
-     console.log("Error" + e.message);
-   }, "rw"
- );
+ // tizen.filesystem.resolve(
+ //   'documents', 
+ //   function(dir){
+ //     documentsDir = dir;
+ //     dir.listFiles(onsuccess, onerror);
+ //   }, function(e){
+ //     console.log("Error" + e.message);
+ //   }, "rw"
+ // );
  
     
     
@@ -544,7 +547,7 @@ $(document).ready(function () {
 <body>
 <canvas id="ArtCanvas" style="z-index:1;">
 </canvas>
-<div id="ToolbarPanel" style="z-index:2; position:absolute; top:0px; left:0px; visibility:hidden">
+<div id="ToolbarPanel" style="z-index:2; position:absolute; top:0px; left:0px; ">
 <img src="img/pencil.bmp" name="pencil">
 <img src="img/pen.bmp" name="pen">
 <img src="img/crayon.bmp" name="crayon">
